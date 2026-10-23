@@ -776,6 +776,13 @@ function base64NaPcm(kusy) {
   let o = 0; for (const u of pole) { spolu.set(u.subarray(0, Math.min(u.length, spolu.length - o)), o); o += u.length; }
   return new Int16Array(spolu.buffer);
 }
+/* Krátky nábeh a doznenie na okrajoch – zabráni cvaknutiu a škrknutiu na začiatku a konci. */
+function dozni(pcm, rate) {
+  const nab = Math.min(Math.round(rate * 0.012), pcm.length >> 2), kon = Math.min(Math.round(rate * 0.06), pcm.length >> 2);
+  for (let i = 0; i < nab; i++) pcm[i] = Math.round(pcm[i] * (i / nab));
+  for (let i = 0; i < kon; i++) { const j = pcm.length - 1 - i; pcm[j] = Math.round(pcm[j] * (i / kon)); }
+  return pcm;
+}
 async function naMp3(kusy, rate, stav) {
   if (typeof lamejs === "undefined") return naWav(kusy, rate);
   const enc = new lamejs.Mp3Encoder(1, rate, +$("kvalita").value || 64), out = [];
@@ -845,7 +852,7 @@ async function precitajCast(text, signal) {
       ls.set(kluceModu, mod);
       if (dvaHlasy && mod === "jeden") jedenHlasPoznamka = true;
       const rate = +((p[0].inlineData.mimeType || "").match(/rate=(\d+)/) || [0, 24000])[1];
-      return { pcm: base64NaPcm(p.map(x => x.inlineData.data)), rate };
+      return { pcm: dozni(base64NaPcm(p.map(x => x.inlineData.data)), rate), rate };
     } catch (e) {
       posledna = e;
       if (e.druh === "poziadavka" && /voice/i.test(e.message) && !/speaker/i.test(e.message)) throw new Chyba(`Služba nepozná hlas „${h1}“${dvaHlasy && h2 !== h1 ? ` alebo „${h2}“` : ""}. Vyberte iný hlas.`, "hlas");
@@ -923,6 +930,7 @@ async function dokonciKapitolu(p, ki) {
   if (uvod) kusy.push(uvod, new Int16Array(Math.round(rate * 0.6)));
   for (const b of k.kusy) kusy.push(new Int16Array(await b.arrayBuffer()));
   if (zaver) kusy.push(new Int16Array(Math.round(rate * 0.8)), zaver);
+  kusy.push(new Int16Array(Math.round(rate * 0.5)));
   const mp3 = await naMp3(kusy, rate, ttsStav);
   const trvanie = kusy.reduce((a, x) => a + x.length, 0) / rate;
   const viac = p.kapitoly.length > 1, n = p.nastavenia;
@@ -965,14 +973,14 @@ $("ukazka").onclick = async () => {
   ulozVolby();
   let t = pripravText($("text").value.trim()).replace(RE_PAUZA, " ").replace(/^\s*\[\s*kapitola[^\]]*\]\s*$/gim, "");
   if (!t.trim()) t = "Pokoj vám. Takto znie tento hlas.";
-  if (t.length > 450) { const cit = $("citaty").checked ? t.search(/„[^“]{40,}“/) : -1; const zac = cit > 300 ? Math.max(0, cit - 120) : 0; t = t.slice(zac, zac + 450).replace(/\s+\S*$/, "") + "…"; }
+  if (t.length > 450) { const cit = $("citaty").checked ? t.search(/„[^“]{40,}“/) : -1; const zac = cit > 300 ? Math.max(0, cit - 120) : 0; t = t.slice(zac, zac + 450); const koniec = Math.max(t.lastIndexOf(". "), t.lastIndexOf("! "), t.lastIndexOf("? "), t.lastIndexOf(".\n"), t.lastIndexOf("“ ")); t = koniec > 120 ? t.slice(0, koniec + 1) : t.replace(/[\s,;:–-]+\S*$/, "") + "."; }
   const ctrl = new AbortController(); ttsJob = ctrl;
   sprava("ttsSprava", ""); $("ttsProg").hidden = false; $("ttsBar").style.width = "30%";
   $("ukazka").disabled = $("vytvorit").disabled = true; jedenHlasPoznamka = false;
   try {
     ttsStav("Vytváram ukážku…");
     const r = await sOpakovanim(() => precitajCast(t, ctrl.signal), ttsStav, ctrl.signal);
-    zobrazVysledok(naWav([r.pcm], r.rate), "ukazka.wav", true);
+    zobrazVysledok(naWav([r.pcm, new Int16Array(Math.round(r.rate * 0.4))], r.rate), "ukazka.wav", true);
     $("ttsAudio").play().catch(() => {});
     if (jedenHlasPoznamka) sprava("ttsSprava", "Druhý hlas na citáty služba neprijala, číta sa hlavným hlasom.", "warn");
   } catch (e) { sprava("ttsSprava", e.message, e.druh === "zrusene" ? "" : "err"); if (e.druh === "kluc") ukazNastavenia(true); }

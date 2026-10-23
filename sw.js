@@ -1,5 +1,5 @@
 // Hlasopis – offline: appka sa otvorí aj bez internetu (nahrávanie, počúvanie a hotové nahrávky fungujú offline).
-const VERZIA = "hlasopis-v2";
+const VERZIA = "hlasopis-v3";
 const SUBORY = ["./", "index.html", "lame.min.js", "manifest.json", "icon-192.png", "icon-512.png"];
 const NESKOR = ["pdf.min.js", "pdf.worker.min.js", "mammoth.browser.min.js"];
 
