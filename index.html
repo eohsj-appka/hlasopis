@@ -1,0 +1,1202 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hlasopis</title>
+<meta name="description" content="Text na prirodzenú reč a nahrávky na text – hlasom Gemini.">
+<meta name="theme-color" content="#F3F4F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#10141C" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Hlasopis">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Literata:opsz,wght@7..72,500;7..72,600&display=swap">
+<style>
+/* Rozloženie: jeden stĺpec ako v mobile, max. 560 px; dve záložky, menej používané voľby v rozbaľovacích kartách. */
+:root{
+  --bg:#F3F4F7; --surface:#FFFFFF; --sunk:#E9EBF1; --ink:#1B2233; --muted:#5B6478; --line:#D6DAE3;
+  --accent:#2E4F8F; --accent-ink:#FFFFFF; --accent-soft:#E2E9F6;
+  --danger:#B3261E; --danger-soft:#FBE7E5; --ok:#2F6B3A; --ok-soft:#E3F1E5; --warn:#8A5A00; --warn-soft:#FBF0D9;
+  --f-display:"Literata",Georgia,"Times New Roman",serif;
+  --f-body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --r:12px; color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#10141C; --surface:#181E29; --sunk:#0C1017; --ink:#E7EAF0; --muted:#9AA3B5; --line:#2A3242;
+  --accent:#8FB0F0; --accent-ink:#0E1626; --accent-soft:#1E2A42;
+  --danger:#F2B8B5; --danger-soft:#3A1E1D; --ok:#9CD3A6; --ok-soft:#1B2E20; --warn:#F0C66B; --warn-soft:#352A12; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10141C; --surface:#181E29; --sunk:#0C1017; --ink:#E7EAF0; --muted:#9AA3B5; --line:#2A3242;
+  --accent:#8FB0F0; --accent-ink:#0E1626; --accent-soft:#1E2A42;
+  --danger:#F2B8B5; --danger-soft:#3A1E1D; --ok:#9CD3A6; --ok-soft:#1B2E20; --warn:#F0C66B; --warn-soft:#352A12; color-scheme:dark}
+*{box-sizing:border-box}
+html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--f-body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 40px}
+[hidden]{display:none!important}
+.wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:4px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand img{width:34px;height:34px;border-radius:9px}
+h1{font:600 24px/1.1 var(--f-display);margin:0;letter-spacing:-.01em}
+h2{font:600 17px/1.3 var(--f-display);margin:0}
+.iconbtn{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--ink);display:grid;place-items:center;cursor:pointer}
+.iconbtn svg{width:22px;height:22px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--sunk);border-radius:var(--r);padding:4px;gap:4px}
+.tabs button{border:0;background:transparent;color:var(--muted);font:700 15px var(--f-body);padding:11px 6px;border-radius:9px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 0 0 1px var(--line)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:12px}
+details.card{gap:0}
+details.card[open]>summary{margin-bottom:12px}
+details.card>.inner{display:flex;flex-direction:column;gap:12px}
+summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px}
+summary::-webkit-details-marker{display:none}
+summary .sub{display:block;font:400 13px var(--f-body);color:var(--muted);margin-top:2px}
+summary::after{content:"";width:9px;height:9px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);flex:none;margin-right:4px;transition:transform .2s}
+details[open]>summary::after{transform:rotate(-135deg)}
+label,.lbl{font-size:13px;font-weight:700;color:var(--muted);letter-spacing:.02em}
+textarea,input[type=text],input[type=password],select{width:100%;font:16px/1.5 var(--f-body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+textarea{resize:vertical}
+#text{min-height:190px}
+#styl,#styl2{min-height:84px;font-size:14px}
+#slovnik{min-height:120px;font-size:14px}
+#prepis{min-height:220px}
+textarea:focus,input:focus,select:focus,button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row>*{min-width:0}
+.col{display:flex;flex-direction:column;gap:6px;min-width:220px}
+.meta{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:0 16px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:700 15px var(--f-body);cursor:pointer;text-decoration:none;white-space:nowrap;letter-spacing:0}
+.btn svg{width:19px;height:19px;flex:none}
+.row>.btn.grow{min-width:150px;white-space:normal;text-align:center;line-height:1.2;padding-block:6px}
+.btn.small{min-height:38px;padding:0 12px;font-size:14px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.danger{color:var(--danger)}
+.btn[disabled]{opacity:.5;cursor:default}
+.grow{flex:1}
+.full{width:100%}
+.check{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--ink);font-weight:400;letter-spacing:0;cursor:pointer}
+.check input{width:20px;height:20px;margin:1px 0 0;accent-color:var(--accent);flex:none}
+.progress{display:flex;flex-direction:column;gap:6px}
+.bar{height:6px;border-radius:3px;background:var(--sunk);overflow:hidden}
+.bar>i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
+.status{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}
+.note{font-size:14px;border-radius:10px;padding:10px 12px;background:var(--accent-soft);color:var(--ink)}
+.note.warn{background:var(--warn-soft)}
+.note.err{background:var(--danger-soft)}
+.note.ok{background:var(--ok-soft)}
+.help{font-size:13px;color:var(--muted);line-height:1.45}
+.help code{font-size:13px;background:var(--sunk);padding:1px 5px;border-radius:5px;color:var(--ink)}
+audio{width:100%}
+.rec{display:flex;flex-direction:column;align-items:center;gap:8px;padding:8px 0}
+.recbtn{width:96px;height:96px;border-radius:50%;border:0;background:var(--danger-soft);color:var(--danger);display:grid;place-items:center;cursor:pointer}
+.recbtn svg{width:38px;height:38px}
+.recbtn.on{background:var(--danger);color:var(--surface);animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(.94)}}
+@media (prefers-reduced-motion:reduce){.recbtn.on{animation:none}.bar>i{transition:none}summary::after{transition:none}}
+.rectime{font:600 22px var(--f-display);font-variant-numeric:tabular-nums}
+.list{display:flex;flex-direction:column}
+.item{display:flex;flex-direction:column;gap:8px;padding:12px 0;border-top:1px solid var(--line)}
+.item:first-child{border-top:0;padding-top:0}
+.item .t{font-weight:700;overflow-wrap:anywhere}
+.item .s{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.empty{font-size:14px;color:var(--muted);margin:0}
+a{color:var(--accent)}
+.small-print{font-size:12px;color:var(--muted)}
+.kapitoly{display:flex;flex-direction:column;gap:2px;font-size:14px;max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--bg)}
+.kapitoly div{display:flex;justify-content:space-between;gap:10px;font-variant-numeric:tabular-nums}
+.kapitoly span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kapitoly span:last-child{color:var(--muted);flex:none}
+.obal{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.obal img{width:84px;height:84px;border-radius:8px;object-fit:cover;border:1px solid var(--line);background:var(--sunk)}
+.subor{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:14px}
+.subor .nazov{flex:1;min-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
+.pick{position:relative;overflow:hidden}
+.pick input{position:absolute;inset:0;opacity:0;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><img src="icon-192.png" alt=""><h1>Hlasopis</h1></div>
+    <button class="iconbtn" id="btnNast" aria-label="Nastavenia" aria-expanded="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+    </button>
+  </header>
+
+  <!-- NASTAVENIA -->
+  <section class="card" id="nastavenia" hidden>
+    <h2>Nastavenia</h2>
+    <div class="note" id="kluc-info">Hlasopis používa službu Gemini od Googlu. Potrebuje váš bezplatný kľúč API – vložíte ho raz a ostane uložený len v tomto zariadení.</div>
+    <label for="kluc">Kľúč API Gemini</label>
+    <div class="row">
+      <input type="password" id="kluc" class="grow" autocomplete="off" spellcheck="false" placeholder="AQ.… alebo AIza…">
+      <button class="btn small" id="ukazKluc" type="button">Ukázať</button>
+    </div>
+    <div class="row">
+      <button class="btn primary small" id="ulozKluc" type="button">Uložiť kľúč</button>
+      <a class="btn small" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Získať kľúč</a>
+    </div>
+    <details>
+      <summary class="lbl">Pokročilé</summary>
+      <div class="card" style="margin-top:10px;padding:12px;background:var(--bg)">
+        <label for="mTts">Model pre hlas</label>
+        <input type="text" id="mTts" spellcheck="false">
+        <label for="mStt">Model pre prepis (skúša v tomto poradí)</label>
+        <input type="text" id="mStt" spellcheck="false">
+        <label for="kvalita">Kvalita MP3</label>
+        <select id="kvalita"><option value="64">Reč – menší súbor (64 kb/s)</option><option value="96">Vyššia (96 kb/s)</option><option value="128">Najvyššia (128 kb/s)</option></select>
+        <button class="btn small" id="resetModely" type="button">Obnoviť predvolené</button>
+      </div>
+    </details>
+    <p class="small-print" id="miesto"></p>
+    <p class="small-print">MP3 vytvára knižnica LAME (lame.sourceforge.net, LGPL), PDF číta pdf.js (Mozilla, Apache 2.0), Word číta mammoth.js (BSD). Texty a nahrávky idú len do služby Gemini pod vaším kľúčom. Pri bezplatnej úrovni ich Google môže použiť na zlepšovanie svojich služieb.</p>
+  </section>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" id="tab-tts" aria-selected="true" aria-controls="p-tts">Text na reč</button>
+    <button role="tab" id="tab-stt" aria-selected="false" aria-controls="p-stt">Reč na text</button>
+  </nav>
+
+  <!-- ============================ TEXT NA REČ ============================ -->
+  <section id="p-tts" role="tabpanel" class="wrap" style="gap:14px">
+    <div class="card" id="pokracovanie" hidden></div>
+
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <label for="text">Text</label>
+        <div class="row">
+          <button class="btn small" id="vlozit" type="button">Vložiť</button>
+          <span class="btn small pick">Otvoriť súbor<input type="file" id="txtSubor" accept=".txt,.pdf,.docx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" aria-label="Otvoriť súbor TXT, PDF alebo Word"></span>
+          <button class="btn small" id="vymazat" type="button">Vymazať</button>
+        </div>
+      </div>
+      <textarea id="text" placeholder="Sem vložte text príhovoru, kapitoly alebo článku… Alebo otvorte súbor .txt, .pdf či Word (.docx)."></textarea>
+      <div class="meta"><span id="pocet">0 znakov</span><span id="odhad"></span></div>
+      <div class="note" id="textSprava" hidden></div>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <div class="col grow">
+          <label for="hlas">Hlas</label>
+          <select id="hlas"></select>
+        </div>
+        <div class="col grow">
+          <label for="predvolba">Štýl čítania</label>
+          <select id="predvolba"></select>
+        </div>
+      </div>
+      <input type="text" id="inyHlas" placeholder="Názov hlasu presne ako v AI Studiu" hidden>
+      <label for="styl">Pokyn, ako čítať</label>
+      <textarea id="styl"></textarea>
+      <label class="check"><input type="checkbox" id="citaty"><span>Citáty v úvodzovkách čítať druhým hlasom</span></label>
+      <div id="citatyVolby" class="wrap" style="gap:10px;margin:0;max-width:none" hidden>
+        <div class="col">
+          <label for="hlas2">Hlas pre citáty</label>
+          <select id="hlas2"></select>
+        </div>
+        <input type="text" id="inyHlas2" placeholder="Názov hlasu presne ako v AI Studiu" hidden>
+        <label for="styl2">Ako čítať citáty</label>
+        <textarea id="styl2"></textarea>
+        <p class="help">Druhým hlasom sa čítajú len dlhšie citáty (aspoň 6 slov) v úvodzovkách „…“ alebo "…". Krátke slová v úvodzovkách číta hlavný hlas. Môžete zvoliť aj ten istý hlas, len s iným pokynom.</p>
+      </div>
+    </div>
+
+    <details class="card" id="dUpravy">
+      <summary><span><h2>Úpravy textu a výslovnosť</h2><span class="sub" id="upravySub">Slovník, odkazy v zátvorkách, pauzy</span></span></summary>
+      <div class="inner">
+        <label class="check"><input type="checkbox" id="upravit" checked><span>Vynechať odkazy v zátvorkách (porov. …, Mt 28, 5 – 6) a rozpísať skratky (sv. → svätý)</span></label>
+        <label for="slovnik">Slovník výslovnosti</label>
+        <textarea id="slovnik" spellcheck="false"></textarea>
+        <p class="help">Jeden výraz na riadok v tvare <code>ako je napísané = ako sa má čítať</code>. Appka ich pred čítaním vždy nahradí. Rozlišuje veľké a malé písmená.</p>
+        <p class="help"><b>Pauzy:</b> napíšte do textu <code>[pauza]</code> pre 1,5 s ticha, alebo napríklad <code>[pauza 3]</code> pre 3 sekundy.</p>
+        <button class="btn small" id="nahlad" type="button">Ukázať text tak, ako sa bude čítať</button>
+        <textarea id="nahladText" readonly hidden style="min-height:160px;font-size:14px"></textarea>
+      </div>
+    </details>
+
+    <details class="card" id="dKniha">
+      <summary><span><h2>Audiokniha, obal a znelka</h2><span class="sub" id="knihaSub">Kapitoly, údaje v MP3, hudba na začiatok a koniec</span></span></summary>
+      <div class="inner">
+        <label class="check"><input type="checkbox" id="kapitolyZap"><span>Rozdeliť na kapitoly – každá kapitola ako samostatné MP3</span></label>
+        <div id="kapitolyVolby" hidden style="display:flex;flex-direction:column;gap:8px">
+          <div class="kapitoly" id="kapitolyZoznam"></div>
+          <p class="help">Kapitolu appka spozná podľa riadku, ktorý začína slovom <code>Kapitola</code>, <code>Časť</code> alebo <code>#</code>, alebo podľa samotného rímskeho čísla (I., II., …). Začiatok kapitoly môžete označiť aj sami: <code>[kapitola Názov kapitoly]</code>.</p>
+        </div>
+        <div class="row">
+          <div class="col grow"><label for="mNazov">Názov (kniha, príhovor)</label><input type="text" id="mNazov" placeholder="Príhovor k Rytierskemu rádu"></div>
+          <div class="col grow"><label for="mAutor">Autor / rečník</label><input type="text" id="mAutor" placeholder="Lev XIV."></div>
+        </div>
+        <div class="col"><label for="mZaner">Žáner</label>
+          <select id="mZaner"><option>Duchovné</option><option>Audiokniha</option><option>Príhovor</option><option>Článok</option><option>Podcast</option></select></div>
+        <span class="lbl">Obal</span>
+        <div class="obal">
+          <img id="obalNahlad" alt="Obal nahrávky" hidden>
+          <span class="btn small pick">Vybrať obrázok<input type="file" id="obalSubor" accept="image/*" aria-label="Vybrať obrázok obalu"></span>
+          <button class="btn small danger" id="obalZmaz" type="button" hidden>Odstrániť</button>
+        </div>
+        <p class="help">Štvorcový obrázok (napr. 1400 × 1400 px), JPG alebo PNG. Appka ho sama zmenší a prevedie do RGB, takže pokojne použite aj export z Corelu.</p>
+        <span class="lbl">Znelka na začiatok</span>
+        <div class="subor"><span class="nazov" id="uvodNazov">žiadna</span>
+          <span class="btn small pick">Vybrať<input type="file" id="uvodSubor" accept="audio/*,.mp3,.m4a,.wav,.ogg" aria-label="Vybrať úvodnú znelku"></span>
+          <button class="btn small" id="uvodPrehraj" type="button" hidden>Vypočuť</button>
+          <button class="btn small danger" id="uvodZmaz" type="button" hidden>Odstrániť</button></div>
+        <span class="lbl">Znelka na koniec</span>
+        <div class="subor"><span class="nazov" id="zaverNazov">žiadna</span>
+          <span class="btn small pick">Vybrať<input type="file" id="zaverSubor" accept="audio/*,.mp3,.m4a,.wav,.ogg" aria-label="Vybrať záverečnú znelku"></span>
+          <button class="btn small" id="zaverPrehraj" type="button" hidden>Vypočuť</button>
+          <button class="btn small danger" id="zaverZmaz" type="button" hidden>Odstrániť</button></div>
+        <div class="col"><label for="znelkaHlas">Hlasitosť znelky</label>
+          <select id="znelkaHlas"><option value="1">Plná</option><option value="0.7">Tichšia</option><option value="0.45">Tichá</option></select></div>
+      </div>
+    </details>
+
+    <div class="card">
+      <div class="row">
+        <button class="btn grow" id="ukazka" type="button">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.9l10.4-6.5a1 1 0 0 0 0-1.8L9.5 4.6A1 1 0 0 0 8 5.5z"/></svg>Vypočuť ukážku</button>
+        <button class="btn primary grow" id="vytvorit" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14"/></svg><span id="vytvoritText">Vytvoriť MP3</span></button>
+      </div>
+      <div class="progress" id="ttsProg" hidden>
+        <div class="bar"><i id="ttsBar"></i></div>
+        <div class="row" style="justify-content:space-between">
+          <span class="status" id="ttsStav"></span>
+          <button class="btn small danger" id="ttsZrus" type="button">Zastaviť</button>
+        </div>
+        <span class="small-print">Nechajte appku otvorenú. Hotové časti sa ukladajú priebežne – po prerušení môžete pokračovať.</span>
+      </div>
+      <div class="note" id="ttsSprava" hidden></div>
+      <div id="ttsVysledok" hidden style="display:flex;flex-direction:column;gap:10px">
+        <audio id="ttsAudio" controls preload="metadata"></audio>
+        <div class="row">
+          <a class="btn primary grow" id="ttsUloz" download="hlasopis.mp3">Uložiť</a>
+          <button class="btn grow" id="ttsZdielaj" type="button" hidden>Zdieľať</button>
+        </div>
+        <span class="small-print" id="ttsInfo"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row" style="justify-content:space-between"><h2>Hotové nahrávky</h2><span class="small-print" id="kniznicaInfo"></span></div>
+      <div class="list" id="kniznica"></div>
+    </div>
+  </section>
+
+  <!-- ============================ REČ NA TEXT ============================ -->
+  <section id="p-stt" role="tabpanel" class="wrap" style="gap:14px" hidden>
+    <div class="card">
+      <div class="rec">
+        <button class="recbtn" id="recBtn" type="button" aria-label="Začať nahrávať">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+        </button>
+        <div class="rectime" id="recCas">00:00</div>
+        <div class="status" id="recStav" style="text-align:center">Ťuknite a hovorte. Nahrávať sa dá aj bez internetu.</div>
+      </div>
+      <span class="btn full pick">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4m0 0L7.5 8.5M12 4l4.5 4.5M5 19.5h14"/></svg>
+        Vybrať nahrávku zo zariadenia<input type="file" id="audioSubor" accept="audio/*,video/mp4,.m4a,.mp3,.wav,.ogg,.opus,.aac,.webm" aria-label="Vybrať nahrávku zo zariadenia"></span>
+      <p class="help">Na dlhé príhovory je spoľahlivejšie nahrať ich v nahrávači v mobile (nahráva aj pri zhasnutej obrazovke) a sem ich potom vybrať.</p>
+    </div>
+
+    <div class="card">
+      <h2>Nahrávky</h2>
+      <div class="list" id="zoznam"></div>
+    </div>
+
+    <div class="card" id="prepisKarta">
+      <label class="check"><input type="checkbox" id="vycistit"><span>Vynechať „ehm“, opakovania a prerieknutia (upravený prepis namiesto doslovného)</span></label>
+      <div class="progress" id="sttProg" hidden>
+        <div class="bar"><i id="sttBar"></i></div>
+        <div class="row" style="justify-content:space-between">
+          <span class="status" id="sttStav"></span>
+          <button class="btn small danger" id="sttZrus" type="button">Zrušiť</button>
+        </div>
+      </div>
+      <div class="note" id="sttSprava" hidden></div>
+      <label for="prepis" id="prepisLbl">Prepis</label>
+      <textarea id="prepis" placeholder="Tu sa objaví prepísaný text alebo titulky. Môžete ich upraviť."></textarea>
+      <div class="row">
+        <button class="btn grow" id="kopiruj" type="button">Kopírovať</button>
+        <a class="btn grow" id="ulozTxt" download="prepis.txt">Uložiť .txt</a>
+        <button class="btn grow" id="zdielajTxt" type="button" hidden>Zdieľať</button>
+      </div>
+      <button class="btn full" id="naHlas" type="button">Prečítať tento text hlasom →</button>
+    </div>
+  </section>
+</div>
+
+<script src="lame.min.js"></script>
+<script>
+"use strict";
+/* =====================================================================
+   NASTAVENIA A POMÔCKY
+   ===================================================================== */
+const API = "https://generativelanguage.googleapis.com";
+const PREDVOLENE = { tts: "gemini-3.8-flash-tts", stt: "gemini-3.8-flash, gemini-3.6-flash, gemini-3.5-flash-lite", kvalita: "64" };
+const HLASY = [["Riko", "Riko – rozprávač"], ["Lumi", "Lumi"], ["Varo", "Varo"], ["__iny", "Iný hlas…"]];
+const STYLY = {
+  prihovor: ["Duchovný príhovor", "Čítaj po slovensky, pokojne, dôstojne a s úctou, ako kňaz, ktorý prednáša príhovor v kostole. Hovor pomalšie, s prirodzenými pauzami medzi vetami a dlhšou pauzou medzi odsekmi. Bez dramatizovania a bez herectva, vrúcne, ale striedmo. Mená svätých a biblické citáty vyslovuj zreteľne."],
+  modlitba: ["Modlitba, rozjímanie", "Čítaj po slovensky veľmi pokojne, tlmene a s úctou, pomaly, s dlhšími pauzami, ako pri spoločnej modlitbe alebo rozjímaní v tichom kostole."],
+  kniha: ["Audiokniha", "Čítaj po slovensky ako skúsený rozprávač audioknihy: pokojne, plynulo, s prirodzenou intonáciou a pauzami, s jemným citom pre dej, bez preháňania."],
+  clanok: ["Článok", "Čítaj po slovensky zrozumiteľne a prirodzene, ako moderátor, ktorý číta článok v rozhlase. Stredné tempo, vecný a príjemný tón."],
+  vlastny: ["Vlastný", ""]
+};
+const STYL_CITAT = "Čítaj po slovensky ako citát zo Svätého písma alebo zo spisov svätých: o niečo pomalšie, slávnostne a s úctou, zreteľne, bez dramatizovania.";
+const SLOVNIK_PRIKLAD = "Lev XIV. = Lev Štrnásty\nJán Pavol II. = Ján Pavol Druhý\nBenedikt XVI. = Benedikt Šestnásty\nSpes non confundit = Spes non konfundit";
+const MAX_CAST = 1500, PAUZA_S = 0.7, PAUZA_ZNACKA_S = 1.5, LIMIT_MS = 180000, ZNAKY_ZA_MIN = 850, INLINE_MAX = 14 * 1024 * 1024, MIN_CITAT = 40;
+const R1 = "Rozpravac", R2 = "Citat";
+
+const $ = id => document.getElementById(id);
+const ls = {
+  get(k, d) { try { const v = localStorage.getItem("hlasopis." + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("hlasopis." + k, JSON.stringify(v)); } catch {} }
+};
+const kluc = () => ls.get("kluc", "").trim();
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const mb = b => (b / 1048576).toFixed(1).replace(".", ",") + " MB";
+const cas = s => { s = Math.round(s || 0); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = String(s % 60).padStart(2, "0"); return h ? `${h}:${String(m).padStart(2, "0")}:${x}` : `${String(m).padStart(2, "0")}:${x}`; };
+const datum = id => new Date(id).toLocaleString("sk-SK", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" });
+const slug = s => (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\w ]+/g, " ").trim().replace(/\s+/g, "-").toLowerCase().slice(0, 50) || "hlasopis";
+function sprava(id, t, druh) { const n = $(id); n.hidden = !t; n.textContent = t || ""; n.className = "note" + (druh ? " " + druh : ""); }
+function tlacidlo(text, druh, fn) { const b = document.createElement("button"); b.type = "button"; b.className = "btn small " + (druh || ""); b.textContent = text; b.onclick = fn; return b; }
+function dvojklik(b, fn, otazka = "Naozaj zmazať?") {
+  const povodny = b.textContent;
+  b.onclick = async () => {
+    if (b.dataset.istota) { await fn(); return; }
+    b.dataset.istota = "1"; b.textContent = otazka;
+    setTimeout(() => { delete b.dataset.istota; b.textContent = povodny; }, 3500);
+  };
+  return b;
+}
+function nacitajSkript(src) {
+  return new Promise((ok, zle) => { if (document.querySelector(`script[src="${src}"]`)) return ok(); const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = () => zle(new Error("Nepodarilo sa načítať " + src)); document.head.append(s); });
+}
+
+/* =====================================================================
+   ÚLOŽISKO V ZARIADENÍ (IndexedDB)
+   ===================================================================== */
+let dbP = null;
+function db() {
+  if (!dbP) dbP = new Promise((ok, zle) => {
+    const r = indexedDB.open("hlasopis", 2);
+    r.onupgradeneeded = () => { for (const s of ["nahravky", "kniznica", "projekty", "subory"]) if (!r.result.objectStoreNames.contains(s)) r.result.createObjectStore(s, { keyPath: "id" }); };
+    r.onsuccess = () => ok(r.result); r.onerror = () => zle(r.error);
+  });
+  return dbP;
+}
+async function dbOp(store, mode, fn) {
+  const d = await db();
+  return new Promise((ok, zle) => { const tx = d.transaction(store, mode); const r = fn(tx.objectStore(store)); tx.oncomplete = () => ok(r?.result); tx.onerror = () => zle(tx.error); tx.onabort = () => zle(tx.error); });
+}
+const uloz = (store, x) => dbOp(store, "readwrite", s => s.put(x));
+const zmaz = (store, id) => dbOp(store, "readwrite", s => s.delete(id));
+const vsetky = store => dbOp(store, "readonly", s => s.getAll());
+const jeden = (store, id) => dbOp(store, "readonly", s => s.get(id));
+
+/* =====================================================================
+   ZÁLOŽKY A NASTAVENIA
+   ===================================================================== */
+function prepni(ktora) {
+  const tts = ktora === "tts";
+  $("tab-tts").setAttribute("aria-selected", tts); $("tab-stt").setAttribute("aria-selected", !tts);
+  $("p-tts").hidden = !tts; $("p-stt").hidden = tts; ls.set("tab", ktora);
+}
+$("tab-tts").onclick = () => prepni("tts");
+$("tab-stt").onclick = () => prepni("stt");
+function ukazNastavenia(ano) {
+  $("nastavenia").hidden = !ano; $("btnNast").setAttribute("aria-expanded", ano);
+  if (ano) { $("nastavenia").scrollIntoView({ behavior: "smooth", block: "start" }); ukazMiesto(); }
+}
+$("btnNast").onclick = () => ukazNastavenia($("nastavenia").hidden);
+$("kluc").value = kluc();
+$("ukazKluc").onclick = () => { const p = $("kluc"); p.type = p.type === "password" ? "text" : "password"; $("ukazKluc").textContent = p.type === "password" ? "Ukázať" : "Skryť"; };
+$("ulozKluc").onclick = () => {
+  ls.set("kluc", $("kluc").value.trim());
+  $("kluc-info").textContent = kluc() ? "Kľúč je uložený v tomto zariadení." : "Kľúč je vymazaný.";
+  if (kluc()) setTimeout(() => ukazNastavenia(false), 900);
+};
+$("mTts").value = ls.get("mTts", PREDVOLENE.tts);
+$("mStt").value = ls.get("mStt", PREDVOLENE.stt);
+$("kvalita").value = ls.get("kvalita", PREDVOLENE.kvalita);
+$("mTts").onchange = () => ls.set("mTts", $("mTts").value.trim() || PREDVOLENE.tts);
+$("mStt").onchange = () => ls.set("mStt", $("mStt").value.trim() || PREDVOLENE.stt);
+$("kvalita").onchange = () => ls.set("kvalita", $("kvalita").value);
+$("resetModely").onclick = () => { for (const [id, k] of [["mTts", "tts"], ["mStt", "stt"], ["kvalita", "kvalita"]]) { $(id).value = PREDVOLENE[k]; ls.set(id, PREDVOLENE[k]); } };
+async function ukazMiesto() {
+  try { const e = await navigator.storage.estimate(); $("miesto").textContent = `Appka zaberá v zariadení ${mb(e.usage || 0)}.`; } catch {}
+}
+function potrebujeKluc() {
+  if (kluc()) return false;
+  ukazNastavenia(true);
+  $("kluc-info").textContent = "Najprv vložte svoj bezplatný kľúč API z Google AI Studia a ťuknite na Uložiť kľúč.";
+  $("kluc").focus();
+  return true;
+}
+
+/* =====================================================================
+   VOLANIE GEMINI
+   ===================================================================== */
+class Chyba extends Error { constructor(msg, druh) { super(msg); this.druh = druh; } }
+
+async function gemini(cesta, telo, signal) {
+  const casovac = new AbortController();
+  const t = setTimeout(() => casovac.abort(), LIMIT_MS);
+  const zrus = () => casovac.abort();
+  signal?.addEventListener("abort", zrus);
+  let odp;
+  try {
+    odp = await fetch(API + cesta, { method: "POST", signal: casovac.signal, headers: { "Content-Type": "application/json", "x-goog-api-key": kluc() }, body: JSON.stringify(telo) });
+  } catch (e) {
+    if (signal?.aborted) throw new Chyba("Zastavené.", "zrusene");
+    if (casovac.signal.aborted) throw new Chyba("Služba neodpovedala včas.", "docasne");
+    if (navigator.onLine === false) throw new Chyba("Ste offline. Pripojte sa na internet.", "offline");
+    throw new Chyba("Nepodarilo sa spojiť so službou Gemini.", "docasne");
+  } finally { clearTimeout(t); signal?.removeEventListener("abort", zrus); }
+  const data = await odp.json().catch(() => ({}));
+  if (odp.ok) return data;
+  const sprava = data?.error?.message || odp.statusText || "";
+  const detaily = JSON.stringify(data?.error?.details || "");
+  if (odp.status === 429) {
+    const denny = /per[\s_-]?day|daily/i.test(sprava + detaily);
+    const delay = (detaily.match(/"retryDelay"\s*:\s*"(\d+)/) || [])[1];
+    const e = new Chyba(denny ? "Dnešný bezplatný limit Gemini je vyčerpaný." : "Bezplatný limit za minútu", denny ? "denny" : "minuta");
+    e.cakaj = delay ? +delay + 2 : 40; throw e;
+  }
+  if (odp.status === 400 && /api key|API_KEY/i.test(sprava)) throw new Chyba("Kľúč API nie je platný. Skontrolujte ho v nastaveniach.", "kluc");
+  if (odp.status === 401 || odp.status === 403) throw new Chyba("Kľúč API nie je platný alebo nemá prístup. Skontrolujte ho v nastaveniach.", "kluc");
+  if (odp.status === 404) throw new Chyba("Model nebol nájdený: " + sprava, "model");
+  if (odp.status >= 500) throw new Chyba("Služba je preťažená.", "docasne");
+  throw new Chyba(sprava || ("Chyba " + odp.status), "poziadavka");
+}
+async function sOpakovanim(fn, stav, signal) {
+  for (let pokus = 0; ; pokus++) {
+    if (signal.aborted) throw new Chyba("Zastavené.", "zrusene");
+    try { return await fn(); }
+    catch (e) {
+      if (!((e.druh === "minuta" || e.druh === "docasne") && pokus < 6)) throw e;
+      for (let z = e.druh === "minuta" ? e.cakaj : 8 + pokus * 8; z > 0; z--) {
+        if (signal.aborted) throw new Chyba("Zastavené.", "zrusene");
+        stav(`${e.message} – pokračujem o ${z} s…`, true); await sleep(1000);
+      }
+    }
+  }
+}
+let wake = null;
+async function bdiet(ano) {
+  try { if (ano && "wakeLock" in navigator) wake = await navigator.wakeLock.request("screen"); else if (!ano && wake) { await wake.release(); wake = null; } } catch {}
+}
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && (ttsJob || sttJob)) bdiet(true); });
+function stavovac(id) {
+  return (t, cakanie) => { const el = $(id); el.dataset.base = t; el.dataset.cak = cakanie ? "1" : ""; el.dataset.t0 = Date.now(); el.textContent = t; };
+}
+const ttsStav = stavovac("ttsStav"), sttStav = stavovac("sttStav");
+setInterval(() => {
+  for (const [id, p] of [["ttsStav", "ttsProg"], ["sttStav", "sttProg"]]) {
+    const el = $(id); if (!el.dataset.base || el.dataset.cak || $(p).hidden) continue;
+    el.textContent = `${el.dataset.base} (${Math.round((Date.now() - el.dataset.t0) / 1000)} s)`;
+  }
+}, 1000);
+
+/* =====================================================================
+   ÚPRAVY TEXTU: odkazy, slovník, pauzy, kapitoly, citáty
+   ===================================================================== */
+function upravOdkazy(t) {
+  return t.replace(/\s*\((?:[^()]*?(?:porov\.|\d)[^()]*)\)/g, "")
+    .replace(/\s*\[\s*(?:\.\.\.|…)\s*\]/g, "")
+    .replace(/\bporov\.\s*/g, "porovnaj ")
+    .replace(/\bSv\.\s+/g, "Svätý ").replace(/\bsv\.\s+/g, "svätý ")
+    .replace(/ +([.,!?;:“"])/g, "$1");
+}
+function slovnikPravidla() {
+  return $("slovnik").value.split(/\r?\n/).map(r => r.match(/^\s*(.+?)\s*(?:=|→|->)\s*(.*?)\s*$/)).filter(m => m && m[1])
+    .map(([, z, na]) => {
+      const esc = z.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const pred = /^[\p{L}\p{N}]/u.test(z) ? "(?<![\\p{L}\\p{N}])" : "", po = /[\p{L}\p{N}]$/u.test(z) ? "(?![\\p{L}\\p{N}])" : "";
+      return [new RegExp(pred + esc + po, "gu"), na];
+    });
+}
+function pripravText(t) {
+  if ($("upravit").checked) t = upravOdkazy(t);
+  for (const [re, na] of slovnikPravidla()) t = t.replace(re, () => na);
+  return t;
+}
+const RE_PAUZA = /\[\s*pauza(?:\s+(\d+(?:[.,]\d+)?))?\s*(?:s|sek\.?|sekúnd|sekundy)?\s*\]/gi;
+const RE_KAP_ZNACKA = /^\s*\[\s*kapitola\s*([^\]]*)\]\s*$/i;
+const RE_KAP_RIADOK = /^\s*(?:(?:kapitola|kap\.|časť|chapter)\s+[\p{L}\p{N}]+\b.{0,80}|#{1,3}\s+.{1,90}|(?:[IVXLC]{1,7}|\d{1,3})\.?)\s*$/iu;
+
+function rozdelNaKapitoly(text) {
+  const riadky = text.split(/\r?\n/), kap = [];
+  let akt = { nazov: "", riadky: [] };
+  for (const r of riadky) {
+    const z = r.match(RE_KAP_ZNACKA);
+    const jeNadpis = !z && RE_KAP_RIADOK.test(r) && r.trim().length > 0;
+    if (z || jeNadpis) {
+      if (akt.riadky.join("").trim()) kap.push(akt);
+      akt = { nazov: z ? (z[1].trim() || `Kapitola ${kap.length + 1}`) : r.trim().replace(/^#+\s*/, ""), riadky: z ? [] : [r.replace(/^\s*#+\s*/, "")] };
+    } else akt.riadky.push(r);
+  }
+  if (akt.riadky.join("").trim()) kap.push(akt);
+  return kap.map((k, i) => ({ nazov: (k.nazov || (kap.length > 1 ? `Úvod` : "")).slice(0, 80), text: k.riadky.join("\n").trim() }))
+    .map((k, i, a) => ({ ...k, nazov: k.nazov || (a.length > 1 ? `Kapitola ${i + 1}` : "") }));
+}
+function kuskyOdseku(o, limit) {
+  if (o.length <= limit) return [o];
+  const k = []; let a = "";
+  for (let veta of o.split(/(?<=[.!?…])\s+/)) {
+    while (veta.length > limit) {
+      let rez = Math.max(veta.lastIndexOf(",", limit), veta.lastIndexOf(" ", limit));
+      if (rez <= 0) rez = limit;
+      if (a) { k.push(a); a = ""; }
+      k.push(veta.slice(0, rez + 1).trim()); veta = veta.slice(rez + 1).trim();
+    }
+    if (a && a.length + veta.length + 1 > limit) { k.push(a); a = veta; } else a = (a + " " + veta).trim();
+  }
+  if (a) k.push(a);
+  return k;
+}
+/* Text jednej kapitoly → časti [{text, pauza}] – pauza = ticho za časťou v sekundách. */
+function rozdelNaCasti(text, limit = MAX_CAST) {
+  const casti = [];
+  const bloky = []; let posl = 0, m; RE_PAUZA.lastIndex = 0;
+  while ((m = RE_PAUZA.exec(text))) { bloky.push([text.slice(posl, m.index), m[1] ? parseFloat(m[1].replace(",", ".")) : PAUZA_ZNACKA_S]); posl = m.index + m[0].length; }
+  bloky.push([text.slice(posl), PAUZA_S]);
+  for (const [blok, pauza] of bloky) {
+    const odseky = blok.split(/\r?\n\s*\r?\n/).map(o => o.trim().replace(/\s*\n\s*/g, " ")).filter(Boolean);
+    let a = "";
+    const zaciatok = casti.length;
+    for (const k of odseky.flatMap(o => kuskyOdseku(o, limit))) {
+      if (a && a.length + k.length + 2 > limit) { casti.push({ text: a, pauza: PAUZA_S }); a = k; } else a = a ? a + "\n\n" + k : k;
+    }
+    if (a) casti.push({ text: a, pauza: PAUZA_S });
+    if (casti.length > zaciatok) casti[casti.length - 1].pauza = Math.min(Math.max(pauza, 0), 30);
+    else if (casti.length) casti[casti.length - 1].pauza += Math.min(pauza, 30);
+  }
+  return casti;
+}
+/* Rozdelí časť na úseky rozprávač / citát. */
+function useky(text) {
+  if (!$("citaty").checked) return [{ kto: R1, text }];
+  const re = /„([^“”„]+)[“”]|"([^"]+)"|“([^”]+)”/g, out = []; let posl = 0, m;
+  while ((m = re.exec(text))) {
+    const vnutro = m[1] || m[2] || m[3];
+    if (vnutro.length < MIN_CITAT || vnutro.trim().split(/\s+/).length < 6) continue;
+    const pred = text.slice(posl, m.index).trim();
+    if (pred) out.push({ kto: R1, text: pred });
+    out.push({ kto: R2, text: vnutro.trim() });
+    posl = m.index + m[0].length;
+  }
+  const zvysok = text.slice(posl).trim();
+  if (zvysok) out.push({ kto: R1, text: zvysok });
+  return out.length ? out : [{ kto: R1, text }];
+}
+
+/* =====================================================================
+   VOĽBY HLASU A ŠTÝLU
+   ===================================================================== */
+for (const id of ["hlas", "hlas2"]) for (const [v, n] of HLASY) $(id).append(new Option(n, v));
+for (const [k, [n]] of Object.entries(STYLY)) $("predvolba").append(new Option(n, k));
+const hlasZ = (sel, iny) => $(sel).value === "__iny" ? ($(iny).value.trim() || "Riko") : $(sel).value;
+const POLIA = ["hlas", "inyHlas", "predvolba", "styl", "citaty", "hlas2", "inyHlas2", "styl2", "upravit", "slovnik", "kapitolyZap", "mNazov", "mAutor", "mZaner", "znelkaHlas", "vycistit"];
+function ulozVolby() { for (const id of POLIA) ls.set("p." + id, $(id).type === "checkbox" ? $(id).checked : $(id).value); }
+function obnovVolby() {
+  const pred = { hlas: "Riko", predvolba: "prihovor", styl: STYLY.prihovor[1], hlas2: "Riko", styl2: STYL_CITAT, upravit: true, slovnik: SLOVNIK_PRIKLAD, mZaner: "Duchovné", znelkaHlas: "0.7" };
+  // prevezme nastavenia zo starej verzie appky
+  for (const k of ["hlas", "inyHlas", "predvolba", "styl", "upravit"]) { const v = ls.get(k, undefined); if (v !== undefined && ls.get("p." + k, undefined) === undefined) ls.set("p." + k, v); }
+  for (const id of POLIA) { const v = ls.get("p." + id, pred[id] ?? ""); if ($(id).type === "checkbox") $(id).checked = !!v; else $(id).value = v; }
+  if (!$("predvolba").value) $("predvolba").value = "prihovor";
+  $("text").value = ls.get("koncept", "");
+  zobrazPodmienene();
+}
+function zobrazPodmienene() {
+  $("inyHlas").hidden = $("hlas").value !== "__iny";
+  $("inyHlas2").hidden = $("hlas2").value !== "__iny" || !$("citaty").checked;
+  $("citatyVolby").hidden = !$("citaty").checked;
+  $("kapitolyVolby").hidden = !$("kapitolyZap").checked;
+  $("vytvoritText").textContent = $("kapitolyZap").checked ? "Vytvoriť audioknihu" : "Vytvoriť MP3";
+  const n = slovnikPravidla().length;
+  $("upravySub").textContent = [n ? `${n} ${n === 1 ? "výraz" : n < 5 ? "výrazy" : "výrazov"} v slovníku` : "Slovník je prázdny", $("upravit").checked ? "odkazy sa vynechajú" : "odkazy sa čítajú"].join(" · ");
+}
+for (const id of POLIA) $(id).addEventListener(["styl", "styl2", "slovnik", "inyHlas", "inyHlas2", "mNazov", "mAutor"].includes(id) ? "input" : "change", () => { zobrazPodmienene(); ulozVolby(); if (["upravit", "slovnik", "kapitolyZap"].includes(id)) pocitaj(); });
+$("predvolba").addEventListener("change", () => { const s = STYLY[$("predvolba").value][1]; if (s) { $("styl").value = s; ulozVolby(); } });
+$("styl").addEventListener("input", () => { $("predvolba").value = Object.keys(STYLY).find(k => STYLY[k][1] === $("styl").value) || "vlastny"; ulozVolby(); });
+$("nahlad").onclick = () => {
+  const t = pripravText($("text").value.trim());
+  $("nahladText").hidden = false; $("nahladText").value = t || "(Text je prázdny.)";
+};
+
+/* =====================================================================
+   TEXT: počítadlo, vkladanie, súbory TXT / PDF / Word
+   ===================================================================== */
+function planuj() {
+  const t = pripravText($("text").value.trim());
+  const kap = $("kapitolyZap").checked ? rozdelNaKapitoly(t) : [{ nazov: "", text: t }];
+  return kap.map(k => ({ nazov: k.nazov, casti: rozdelNaCasti(k.text) })).filter(k => k.casti.length);
+}
+function pocitaj() {
+  const t = $("text").value.trim();
+  $("pocet").textContent = t.length.toLocaleString("sk-SK") + " znakov";
+  if (!t) { $("odhad").textContent = ""; $("kapitolyZoznam").textContent = ""; return; }
+  const plan = planuj(), znaky = plan.reduce((a, k) => a + k.casti.reduce((b, c) => b + c.text.length, 0), 0);
+  const c = plan.reduce((a, k) => a + k.casti.length, 0), min = Math.max(1, Math.round(znaky / ZNAKY_ZA_MIN));
+  const kus = (n, a, b, c2) => `${n} ${n === 1 ? a : n < 5 ? b : c2}`;
+  $("odhad").textContent = `≈ ${min < 60 ? min + " min" : Math.floor(min / 60) + " h " + (min % 60) + " min"} · ${kus(c, "časť", "časti", "častí")}` + ($("kapitolyZap").checked ? ` · ${kus(plan.length, "kapitola", "kapitoly", "kapitol")}` : "");
+  const z = $("kapitolyZoznam"); z.textContent = "";
+  if ($("kapitolyZap").checked) {
+    if (plan.length < 2) { const p = document.createElement("div"); p.textContent = "Nenašiel som žiadne kapitoly – vznikne jedno MP3. Pozrite pomocníka nižšie."; z.append(p); }
+    else plan.forEach((k, i) => { const r = document.createElement("div"); const a = document.createElement("span"), b = document.createElement("span"); a.textContent = `${i + 1}. ${k.nazov}`; b.textContent = `≈ ${Math.max(1, Math.round(k.casti.reduce((x, c2) => x + c2.text.length, 0) / ZNAKY_ZA_MIN))} min`; r.append(a, b); z.append(r); });
+  }
+}
+let konceptT;
+$("text").oninput = () => { sprava("textSprava", ""); clearTimeout(konceptT); konceptT = setTimeout(() => { ls.set("koncept", $("text").value); pocitaj(); }, 350); };
+$("vymazat").onclick = () => { $("text").value = ""; ls.set("koncept", ""); pocitaj(); $("text").focus(); };
+$("vlozit").onclick = async () => {
+  try { const t = await navigator.clipboard.readText(); if (t) { $("text").value = t; $("text").oninput(); return; } } catch {}
+  $("text").focus(); sprava("textSprava", "Podržte prst v poli Text a zvoľte Prilepiť.");
+};
+$("txtSubor").onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+  const k = (f.name.match(/\.(\w+)$/) || [])[1]?.toLowerCase();
+  sprava("textSprava", `Otváram ${f.name}…`);
+  try {
+    let t;
+    if (k === "pdf" || f.type === "application/pdf") t = await textZPdf(f);
+    else if (k === "docx") t = await textZWordu(f);
+    else if (k === "doc") throw new Error("Starý formát .doc neviem otvoriť. Vo Worde ho uložte ako .docx alebo .txt.");
+    else { const buf = await f.arrayBuffer(); t = new TextDecoder("utf-8").decode(buf); if (t.includes("�")) t = new TextDecoder("windows-1250").decode(buf); }
+    t = t.replace(/^﻿/, "").replace(/\n{3,}/g, "\n\n").trim();
+    if (!t) throw new Error("V súbore som nenašiel žiadny text. Ak je to naskenované PDF (obrázky strán), text z neho nevytiahnem.");
+    $("text").value = t; ls.set("koncept", t); pocitaj();
+    if (!$("mNazov").value.trim()) { $("mNazov").value = f.name.replace(/\.[^.]+$/, ""); ulozVolby(); }
+    sprava("textSprava", `Načítané: ${f.name}. Skontrolujte text – pri PDF môžu ostať čísla strán alebo hlavičky.`, k === "pdf" ? "warn" : "ok");
+  } catch (err) { sprava("textSprava", err.message, "err"); }
+};
+async function textZPdf(f) {
+  await nacitajSkript("pdf.min.js");
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "pdf.worker.min.js";
+  const pdf = await pdfjsLib.getDocument({ data: await f.arrayBuffer() }).promise;
+  const strany = [];
+  for (let i = 1; i <= pdf.numPages; i++) {
+    sprava("textSprava", `Čítam PDF – strana ${i} z ${pdf.numPages}…`);
+    const obsah = await (await pdf.getPage(i)).getTextContent();
+    const riadky = []; let akt = "", poslY = null, vyska = 12, medzery = [];
+    for (const it of obsah.items) {
+      if (!("str" in it)) continue;
+      const y = it.transform[5]; vyska = Math.abs(it.transform[3]) || vyska;
+      if (poslY !== null && Math.abs(y - poslY) > vyska * 0.5) { riadky.push(akt); medzery.push(Math.abs(poslY - y)); akt = ""; }
+      akt += it.str; if (it.hasEOL) { riadky.push(akt); medzery.push(0); akt = ""; poslY = null; continue; }
+      poslY = y;
+    }
+    if (akt) riadky.push(akt);
+    const bezna = medzery.filter(x => x > 0).sort((a, b) => a - b)[Math.floor(medzery.filter(x => x > 0).length / 2)] || vyska * 1.2;
+    let s = "";
+    riadky.forEach((r, j) => { s += r; const g = medzery[j]; s += g === undefined ? "" : g > bezna * 1.45 || (g === 0 && /[.!?:“"]\s*$/.test(r)) ? "\n\n" : "\n"; });
+    strany.push(s.replace(/[ \t]+/g, " "));
+  }
+  return strany.join("\n\n")
+    .replace(/(\p{L})-\n(\p{Ll})/gu, "$1$2")          // rozdelené slová na konci riadku
+    .replace(/([^\n])\n(?!\n)/g, "$1 ")                 // jednoduché zalomenie riadku → medzera
+    .replace(/^\s*\d{1,4}\s*$/gm, "")                   // samotné čísla strán
+    .replace(/ {2,}/g, " ");
+}
+async function textZWordu(f) {
+  await nacitajSkript("mammoth.browser.min.js");
+  const r = await mammoth.extractRawText({ arrayBuffer: await f.arrayBuffer() });
+  return r.value.replace(/\r/g, "").replace(/\n(?!\n)/g, "\n\n");
+}
+
+/* =====================================================================
+   SÚBORY: obal a znelky (uložené v zariadení)
+   ===================================================================== */
+async function nastavObal(blob) {
+  if (blob) { $("obalNahlad").src = URL.createObjectURL(blob); }
+  $("obalNahlad").hidden = $("obalZmaz").hidden = !blob;
+}
+$("obalSubor").onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+  try {
+    const bmp = await createImageBitmap(f);
+    const s = Math.min(bmp.width, bmp.height), c = document.createElement("canvas"); c.width = c.height = 800;
+    const x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, 800, 800);
+    x.drawImage(bmp, (bmp.width - s) / 2, (bmp.height - s) / 2, s, s, 0, 0, 800, 800);
+    const blob = await new Promise(ok => c.toBlob(ok, "image/jpeg", 0.88));
+    await uloz("subory", { id: "obal", blob }); nastavObal(blob);
+  } catch { sprava("ttsSprava", "Tento obrázok sa nepodarilo otvoriť. Skúste JPG alebo PNG.", "err"); }
+};
+$("obalZmaz").onclick = async () => { await zmaz("subory", "obal"); nastavObal(null); };
+for (const k of ["uvod", "zaver"]) {
+  $(k + "Subor").onchange = async e => {
+    const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+    await uloz("subory", { id: k, blob: f, meno: f.name }); nastavZnelku(k, f, f.name);
+  };
+  $(k + "Zmaz").onclick = async () => { await zmaz("subory", k); nastavZnelku(k, null); };
+  $(k + "Prehraj").onclick = async () => { const z = await jeden("subory", k); if (z) new Audio(URL.createObjectURL(z.blob)).play().catch(() => {}); };
+}
+function nastavZnelku(k, blob, meno) {
+  $(k + "Nazov").textContent = blob ? meno : "žiadna";
+  $(k + "Prehraj").hidden = $(k + "Zmaz").hidden = !blob;
+  pocitajKnihaSub();
+}
+async function pocitajKnihaSub() {
+  const veci = [];
+  if ($("kapitolyZap").checked) veci.push("kapitoly zapnuté");
+  if (!$("obalNahlad").hidden) veci.push("obal");
+  if (!$("uvodZmaz").hidden || !$("zaverZmaz").hidden) veci.push("znelka");
+  if ($("mNazov").value.trim()) veci.push("„" + $("mNazov").value.trim().slice(0, 30) + "“");
+  $("knihaSub").textContent = veci.length ? veci.join(" · ") : "Kapitoly, údaje v MP3, hudba na začiatok a koniec";
+}
+for (const id of ["kapitolyZap", "mNazov"]) $(id).addEventListener("change", pocitajKnihaSub);
+async function znelkaPcm(k, rate) {
+  const z = await jeden("subory", k).catch(() => null); if (!z) return null;
+  const AC = window.AudioContext || window.webkitAudioContext;
+  const ac = new AC(); const buf = await ac.decodeAudioData(await z.blob.arrayBuffer()); ac.close?.();
+  const dlzka = Math.min(buf.duration, 60);
+  const off = new OfflineAudioContext(1, Math.ceil(dlzka * rate), rate);
+  const src = off.createBufferSource(); src.buffer = buf;
+  const g = off.createGain(); g.gain.value = +$("znelkaHlas").value;
+  if (buf.duration > 60) { g.gain.setValueAtTime(+$("znelkaHlas").value, 58); g.gain.linearRampToValueAtTime(0, 60); }
+  src.connect(g).connect(off.destination); src.start();
+  const f = (await off.startRendering()).getChannelData(0), out = new Int16Array(f.length);
+  for (let i = 0; i < f.length; i++) out[i] = Math.max(-1, Math.min(1, f[i])) * 32767;
+  return out;
+}
+
+/* =====================================================================
+   ZVUK: PCM, MP3, WAV, ID3 (názov, autor, obal)
+   ===================================================================== */
+function base64NaPcm(kusy) {
+  const pole = kusy.map(b => { const s = atob(b); const u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; });
+  const dlzka = pole.reduce((a, u) => a + u.length, 0), spolu = new Uint8Array(dlzka - (dlzka % 2));
+  let o = 0; for (const u of pole) { spolu.set(u.subarray(0, Math.min(u.length, spolu.length - o)), o); o += u.length; }
+  return new Int16Array(spolu.buffer);
+}
+async function naMp3(kusy, rate, stav) {
+  if (typeof lamejs === "undefined") return naWav(kusy, rate);
+  const enc = new lamejs.Mp3Encoder(1, rate, +$("kvalita").value || 64), out = [];
+  const spolu = kusy.reduce((a, k) => a + k.length, 0); let hotovo = 0, t = performance.now();
+  for (const k of kusy) for (let i = 0; i < k.length; i += 1152) {
+    const b = enc.encodeBuffer(k.subarray(i, i + 1152)); if (b.length) out.push(new Uint8Array(b));
+    hotovo += Math.min(1152, k.length - i);
+    if (performance.now() - t > 40) { stav(`Ukladám MP3… ${Math.round(hotovo / spolu * 100)} %`, true); await sleep(0); t = performance.now(); }
+  }
+  const f = enc.flush(); if (f.length) out.push(new Uint8Array(f));
+  return out;
+}
+function naWav(kusy, rate) {
+  const n = kusy.reduce((a, k) => a + k.length, 0), h = new DataView(new ArrayBuffer(44));
+  const w = (o, s) => [...s].forEach((c, i) => h.setUint8(o + i, c.charCodeAt(0)));
+  w(0, "RIFF"); h.setUint32(4, 36 + n * 2, true); w(8, "WAVEfmt "); h.setUint32(16, 16, true); h.setUint16(20, 1, true); h.setUint16(22, 1, true);
+  h.setUint32(24, rate, true); h.setUint32(28, rate * 2, true); h.setUint16(32, 2, true); h.setUint16(34, 16, true); w(36, "data"); h.setUint32(40, n * 2, true);
+  return new Blob([h, ...kusy], { type: "audio/wav" });
+}
+async function id3(tagy, obal) {
+  const ramce = [];
+  const ramec = (id, data) => { const h = new Uint8Array(10 + data.length); h.set([...id].map(c => c.charCodeAt(0))); new DataView(h.buffer).setUint32(4, data.length); h.set(data, 10); ramce.push(h); };
+  const utf16 = s => { const u = new Uint8Array(3 + s.length * 2); u[0] = 1; u[1] = 0xFF; u[2] = 0xFE; for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i); u[3 + i * 2] = c & 255; u[4 + i * 2] = c >> 8; } return u; };
+  for (const [id, v] of Object.entries(tagy)) if (v) ramec(id, utf16(String(v)));
+  if (obal) {
+    const img = new Uint8Array(await obal.arrayBuffer()), mime = new TextEncoder().encode("image/jpeg");
+    const d = new Uint8Array(1 + mime.length + 1 + 1 + 1 + img.length); let o = 0;
+    d[o++] = 0; d.set(mime, o); o += mime.length; d[o++] = 0; d[o++] = 3; d[o++] = 0; d.set(img, o);
+    ramec("APIC", d);
+  }
+  const telo = ramce.reduce((a, r) => a + r.length, 0), h = new Uint8Array(10);
+  h.set([0x49, 0x44, 0x33, 3, 0, 0]); [21, 14, 7, 0].forEach((s, i) => h[6 + i] = (telo >> s) & 127);
+  return [h, ...ramce];
+}
+
+/* =====================================================================
+   GEMINI HLAS – jedna časť textu
+   ===================================================================== */
+async function precitajCast(text, signal) {
+  const s1 = $("styl").value.trim(), s2 = $("styl2").value.trim();
+  const h1 = hlasZ("hlas", "inyHlas"), h2 = hlasZ("hlas2", "inyHlas2");
+  const u = useky(text), dvaHlasy = u.some(x => x.kto === R2);
+  const model = encodeURIComponent($("mTts").value.trim() || PREDVOLENE.tts);
+  const hlasCfg = v => ({ prebuiltVoiceConfig: { voiceName: v } });
+  const kluceModu = dvaHlasy ? "ttsModeDva" : "ttsMode";
+  let mody = dvaHlasy ? ["metadata", "riadky", "jeden"] : ["metadata", "pokyn"];
+  const ulozeny = ls.get(kluceModu, null); if (ulozeny && mody.includes(ulozeny)) mody = [ulozeny, ...mody.filter(m => m !== ulozeny)];
+  let posledna;
+  for (const mod of mody) {
+    let parts, speechConfig;
+    if (!dvaHlasy || mod === "jeden") {
+      const t = dvaHlasy ? u.map(x => x.kto === R2 ? `„${x.text}“` : x.text).join(" ") : text;
+      parts = mod === "pokyn" || (dvaHlasy && mod === "jeden")
+        ? [{ text: s1 ? `${s1}\n\nPrečítaj nasledujúci text presne tak, ako je napísaný:\n\n${t}` : t }]
+        : [{ text: t, ...(s1 ? { speechMetadata: { style: s1 } } : {}) }];
+      speechConfig = { voiceConfig: hlasCfg(h1) };
+    } else {
+      speechConfig = { multiSpeakerVoiceConfig: { speakerVoiceConfigs: [{ speaker: R1, voiceConfig: hlasCfg(h1) }, { speaker: R2, voiceConfig: hlasCfg(h2) }] } };
+      parts = mod === "metadata"
+        ? u.map(x => ({ text: x.text, speechMetadata: { speaker: x.kto, ...((x.kto === R1 ? s1 : s2) ? { style: x.kto === R1 ? s1 : s2 } : {}) } }))
+        : [{ text: `Prečítaj nasledujúci text. ${R1}: ${s1} ${R2}: ${s2} Čítaj presne tak, ako je napísané, mená rečníkov nečítaj.\n\n` + u.map(x => `${x.kto}: ${x.text}`).join("\n") }];
+    }
+    try {
+      const d = await gemini(`/v1beta/models/${model}:generateContent`, { contents: [{ role: "user", parts }], generationConfig: { responseModalities: ["AUDIO"], speechConfig } }, signal);
+      const p = (d.candidates?.[0]?.content?.parts || []).filter(x => x.inlineData?.data);
+      if (!p.length) throw new Chyba("Služba nevrátila zvuk" + (d.candidates?.[0]?.finishReason ? ` (${d.candidates[0].finishReason})` : "") + ".", "prazdne");
+      ls.set(kluceModu, mod);
+      if (dvaHlasy && mod === "jeden") jedenHlasPoznamka = true;
+      const rate = +((p[0].inlineData.mimeType || "").match(/rate=(\d+)/) || [0, 24000])[1];
+      return { pcm: base64NaPcm(p.map(x => x.inlineData.data)), rate };
+    } catch (e) {
+      posledna = e;
+      if (e.druh === "poziadavka" && /voice/i.test(e.message) && !/speaker/i.test(e.message)) throw new Chyba(`Služba nepozná hlas „${h1}“${dvaHlasy && h2 !== h1 ? ` alebo „${h2}“` : ""}. Vyberte iný hlas.`, "hlas");
+      if (e.druh !== "poziadavka" && e.druh !== "prazdne") throw e;
+    }
+  }
+  throw posledna;
+}
+let jedenHlasPoznamka = false;
+
+/* =====================================================================
+   PROJEKT: tvorba MP3 / audioknihy s priebežným ukladaním
+   ===================================================================== */
+let ttsJob = null, ttsUrl = null, ttsBlob = null;
+function snimkaNastaveni() { const o = {}; for (const id of POLIA) o[id] = $(id).type === "checkbox" ? $(id).checked : $(id).value; return o; }
+function nastavZoSnimky(o) { for (const [id, v] of Object.entries(o || {})) if ($(id)) { if ($(id).type === "checkbox") $(id).checked = v; else $(id).value = v; } zobrazPodmienene(); }
+
+async function vytvorProjekt() {
+  const plan = planuj();
+  if (!plan.length) return null;
+  const nazov = $("mNazov").value.trim() || $("text").value.trim().split(/\s+/).slice(0, 6).join(" ");
+  const p = { id: Date.now(), nazov, nastavenia: snimkaNastaveni(),
+    kapitoly: plan.map((k, i) => ({ nazov: k.nazov || nazov, casti: k.casti, hotove: 0, kusy: [], rate: 24000, hotova: false })) };
+  await uloz("projekty", p);
+  return p;
+}
+async function spustiProjekt(p) {
+  if (ttsJob || potrebujeKluc()) return;
+  const ctrl = new AbortController(); ttsJob = ctrl;
+  sprava("ttsSprava", ""); $("ttsVysledok").hidden = true; $("ttsProg").hidden = false; $("pokracovanie").hidden = true;
+  $("ukazka").disabled = $("vytvorit").disabled = true; bdiet(true); jedenHlasPoznamka = false;
+  const predUlozene = snimkaNastaveni(); nastavZoSnimky(p.nastavenia);
+  const spoluCasti = p.kapitoly.reduce((a, k) => a + k.casti.length, 0);
+  const hotoveCasti = () => p.kapitoly.reduce((a, k) => a + k.hotove, 0);
+  const viacKap = p.kapitoly.length > 1;
+  let posledny = null, chyba = null;
+  try {
+    for (let ki = 0; ki < p.kapitoly.length; ki++) {
+      const k = p.kapitoly[ki]; if (k.hotova) continue;
+      for (let ci = k.hotove; ci < k.casti.length; ci++) {
+        const popis = (viacKap ? `Kapitola ${ki + 1}/${p.kapitoly.length}, ` : "") + (k.casti.length > 1 ? `časť ${ci + 1} z ${k.casti.length}…` : "vytváram zvuk…");
+        ttsStav(popis.charAt(0).toUpperCase() + popis.slice(1));
+        const r = await sOpakovanim(() => precitajCast(k.casti[ci].text, ctrl.signal), ttsStav, ctrl.signal);
+        k.rate = r.rate;
+        const pauza = ci < k.casti.length - 1 ? new Int16Array(Math.round(r.rate * k.casti[ci].pauza)) : new Int16Array(0);
+        k.kusy.push(new Blob([r.pcm, pauza])); k.hotove = ci + 1;
+        await uloz("projekty", p);
+        $("ttsBar").style.width = (hotoveCasti() / spoluCasti * 100) + "%";
+      }
+      posledny = await dokonciKapitolu(p, ki);
+      k.hotova = true; k.kusy = [];
+      await uloz("projekty", p);
+    }
+  } catch (e) { chyba = e; }
+  nastavZoSnimky(predUlozene);
+  const vsetko = p.kapitoly.every(k => k.hotova);
+  if (vsetko) await zmaz("projekty", p.id);
+  await vykresliKniznicu();
+  if (posledny) zobrazVysledok(posledny.blob, posledny.subor, false, vsetko && viacKap ? `Hotovo: všetky kapitoly (${p.kapitoly.length}) sú v Hotových nahrávkach.` : "");
+  if (chyba) {
+    if (chyba.druh === "kluc") ukazNastavenia(true);
+    const k = p.kapitoly.filter(x => x.hotova).length;
+    sprava("ttsSprava", hotoveCasti() > 0
+      ? `${chyba.message} Rozpracované je uložené (${viacKap ? `hotových ${k} z ${p.kapitoly.length} kapitol` : `${hotoveCasti()} z ${spoluCasti} častí`}). ${chyba.druh === "denny" ? "Zajtra" : "Neskôr"} ťuknite na Pokračovať.`
+      : chyba.message, chyba.druh === "zrusene" ? "" : chyba.druh === "denny" ? "warn" : "err");
+    if (!hotoveCasti()) await zmaz("projekty", p.id);
+  } else if (jedenHlasPoznamka) sprava("ttsSprava", "Druhý hlas na citáty služba neprijala, preto je všetko prečítané hlavným hlasom.", "warn");
+  koniecTts(); ukazPokracovanie();
+}
+async function dokonciKapitolu(p, ki) {
+  const k = p.kapitoly[ki], rate = k.rate;
+  ttsStav("Spájam zvuk…");
+  const kusy = [];
+  const uvod = await znelkaPcm("uvod", rate).catch(() => null), zaver = await znelkaPcm("zaver", rate).catch(() => null);
+  if (uvod) kusy.push(uvod, new Int16Array(Math.round(rate * 0.6)));
+  for (const b of k.kusy) kusy.push(new Int16Array(await b.arrayBuffer()));
+  if (zaver) kusy.push(new Int16Array(Math.round(rate * 0.8)), zaver);
+  const mp3 = await naMp3(kusy, rate, ttsStav);
+  const trvanie = kusy.reduce((a, x) => a + x.length, 0) / rate;
+  const viac = p.kapitoly.length > 1, n = p.nastavenia;
+  const nazovStopy = viac ? k.nazov : p.nazov;
+  const obal = (await jeden("subory", "obal").catch(() => null))?.blob;
+  const tag = await id3({ TIT2: nazovStopy, TPE1: n.mAutor, TALB: n.mNazov || p.nazov, TRCK: viac ? `${ki + 1}/${p.kapitoly.length}` : "", TCON: n.mZaner, TYER: String(new Date().getFullYear()) }, obal);
+  const blob = Array.isArray(mp3) ? new Blob([...tag, ...mp3], { type: "audio/mpeg" }) : mp3;
+  const ext = blob.type === "audio/mpeg" ? "mp3" : "wav";
+  const subor = (viac ? String(ki + 1).padStart(2, "0") + "-" : "") + slug(viac ? `${n.mNazov || ""} ${k.nazov}` : p.nazov) + "." + ext;
+  const z = { id: Date.now(), nazov: viac ? `${p.nazov} – ${ki + 1}. ${k.nazov}` : p.nazov, subor, blob, trvanie, autor: n.mAutor || "" };
+  await uloz("kniznica", z);
+  return z;
+}
+function koniecTts() { ttsJob = null; $("ttsProg").hidden = true; $("ukazka").disabled = $("vytvorit").disabled = false; bdiet(false); }
+async function ukazPokracovanie() {
+  const projekty = (await vsetky("projekty").catch(() => [])).sort((a, b) => b.id - a.id);
+  const box = $("pokracovanie"); box.textContent = "";
+  if (!projekty.length || ttsJob) { box.hidden = true; return; }
+  for (const p of projekty) {
+    const spolu = p.kapitoly.reduce((a, k) => a + k.casti.length, 0), hotove = p.kapitoly.reduce((a, k) => a + k.hotove, 0);
+    const h2 = document.createElement("h2"); h2.textContent = "Nedokončené: " + p.nazov;
+    const s = document.createElement("div"); s.className = "status";
+    s.textContent = p.kapitoly.length > 1 ? `Hotových ${p.kapitoly.filter(k => k.hotova).length} z ${p.kapitoly.length} kapitol · ${hotove} z ${spolu} častí` : `Hotových ${hotove} z ${spolu} častí`;
+    const r = document.createElement("div"); r.className = "row";
+    r.append(tlacidlo("Pokračovať", "primary grow", () => spustiProjekt(p)), dvojklik(tlacidlo("Zahodiť", "danger"), async () => { await zmaz("projekty", p.id); ukazPokracovanie(); }, "Naozaj zahodiť?"));
+    box.append(h2, s, r);
+  }
+  box.hidden = false;
+}
+
+$("vytvorit").onclick = async () => {
+  if (ttsJob || potrebujeKluc()) return;
+  if (!$("text").value.trim()) { sprava("ttsSprava", "Najprv vložte text.", "warn"); return; }
+  ulozVolby();
+  const p = await vytvorProjekt();
+  if (p) spustiProjekt(p);
+};
+$("ukazka").onclick = async () => {
+  if (ttsJob || potrebujeKluc()) return;
+  ulozVolby();
+  let t = pripravText($("text").value.trim()).replace(RE_PAUZA, " ").replace(/^\s*\[\s*kapitola[^\]]*\]\s*$/gim, "");
+  if (!t.trim()) t = "Pokoj vám. Takto znie tento hlas.";
+  if (t.length > 450) { const cit = $("citaty").checked ? t.search(/„[^“]{40,}“/) : -1; const zac = cit > 300 ? Math.max(0, cit - 120) : 0; t = t.slice(zac, zac + 450).replace(/\s+\S*$/, "") + "…"; }
+  const ctrl = new AbortController(); ttsJob = ctrl;
+  sprava("ttsSprava", ""); $("ttsProg").hidden = false; $("ttsBar").style.width = "30%";
+  $("ukazka").disabled = $("vytvorit").disabled = true; jedenHlasPoznamka = false;
+  try {
+    ttsStav("Vytváram ukážku…");
+    const r = await sOpakovanim(() => precitajCast(t, ctrl.signal), ttsStav, ctrl.signal);
+    zobrazVysledok(naWav([r.pcm], r.rate), "ukazka.wav", true);
+    $("ttsAudio").play().catch(() => {});
+    if (jedenHlasPoznamka) sprava("ttsSprava", "Druhý hlas na citáty služba neprijala, číta sa hlavným hlasom.", "warn");
+  } catch (e) { sprava("ttsSprava", e.message, e.druh === "zrusene" ? "" : "err"); if (e.druh === "kluc") ukazNastavenia(true); }
+  koniecTts();
+};
+$("ttsZrus").onclick = () => { ttsJob?.abort(); ttsStav("Zastavujem…"); };
+function zdielanieSuborov(blob, meno) { try { return !!navigator.canShare?.({ files: [new File([blob], meno, { type: blob.type })] }); } catch { return false; } }
+async function zdielaj(blob, meno) { try { await navigator.share({ files: [new File([blob], meno, { type: blob.type })], title: meno }); } catch {} }
+function zobrazVysledok(blob, subor, ukazka, info) {
+  if (ttsUrl) URL.revokeObjectURL(ttsUrl);
+  ttsBlob = blob; ttsUrl = URL.createObjectURL(blob);
+  $("ttsAudio").src = ttsUrl; $("ttsVysledok").hidden = false;
+  $("ttsUloz").href = ttsUrl; $("ttsUloz").download = subor;
+  $("ttsUloz").textContent = ukazka ? "Uložiť ukážku" : "Uložiť MP3";
+  $("ttsZdielaj").hidden = !zdielanieSuborov(blob, subor);
+  $("ttsZdielaj").onclick = () => zdielaj(ttsBlob, subor);
+  $("ttsInfo").textContent = ukazka ? "Toto je len ukážka začiatku textu. Celú nahrávku vytvoríte tlačidlom Vytvoriť MP3." : (info || `${mb(blob.size)} · ${subor} · uložené aj v Hotových nahrávkach`);
+}
+
+/* =====================================================================
+   KNIŽNICA HOTOVÝCH NAHRÁVOK
+   ===================================================================== */
+async function vykresliKniznicu() {
+  const n = (await vsetky("kniznica").catch(() => [])).sort((a, b) => b.id - a.id);
+  const z = $("kniznica"); z.textContent = "";
+  $("kniznicaInfo").textContent = n.length ? `${n.length} · ${mb(n.reduce((a, x) => a + x.blob.size, 0))}` : "";
+  if (!n.length) { const p = document.createElement("p"); p.className = "empty"; p.textContent = "Tu sa budú ukladať vaše hotové MP3 – aj bez internetu si ich tu vypočujete."; z.append(p); return; }
+  for (const x of n) z.append(polozka(x.nazov, [datum(x.id), cas(x.trvanie), mb(x.blob.size), x.autor].filter(Boolean).join(" · "), x.blob, x.subor, [
+    dvojklik(tlacidlo("Zmazať", "danger"), async () => { await zmaz("kniznica", x.id); vykresliKniznicu(); })
+  ]));
+}
+function polozka(nazov, popis, blob, subor, dalsie, hlavne) {
+  const it = document.createElement("div"); it.className = "item";
+  const t = document.createElement("div"); t.className = "t"; t.textContent = nazov;
+  const s = document.createElement("div"); s.className = "s"; s.textContent = popis;
+  const r = document.createElement("div"); r.className = "row";
+  if (hlavne) r.append(...hlavne);
+  r.append(tlacidlo("Vypočuť", "", () => { let a = it.querySelector("audio"); if (a) { a.pause(); a.remove(); return; } a = document.createElement("audio"); a.controls = true; a.src = URL.createObjectURL(blob); it.append(a); a.play().catch(() => {}); }));
+  const ul = document.createElement("a"); ul.className = "btn small"; ul.textContent = "Uložiť"; ul.download = subor; ul.href = URL.createObjectURL(blob);
+  r.append(ul);
+  if (zdielanieSuborov(blob, subor)) r.append(tlacidlo("Zdieľať", "", () => zdielaj(blob, subor)));
+  r.append(...dalsie);
+  it.append(t, s, r);
+  return it;
+}
+
+/* =====================================================================
+   REČ NA TEXT: nahrávanie a zoznam nahrávok
+   ===================================================================== */
+function koncovka(typ, meno) {
+  const z = (meno || "").match(/\.(\w+)$/); if (z) return z[1].toLowerCase();
+  return /webm/.test(typ) ? "webm" : /ogg|opus/.test(typ) ? "ogg" : /mp4|m4a|aac/.test(typ) ? "m4a" : /mpeg|mp3/.test(typ) ? "mp3" : /wav/.test(typ) ? "wav" : "audio";
+}
+async function vykresliZoznam() {
+  const n = (await vsetky("nahravky").catch(() => [])).sort((a, b) => b.id - a.id);
+  const z = $("zoznam"); z.textContent = "";
+  if (!n.length) { const p = document.createElement("p"); p.className = "empty"; p.textContent = "Zatiaľ žiadne nahrávky. Nahrajte niečo tlačidlom mikrofónu alebo vyberte súbor."; z.append(p); return; }
+  for (const x of n) {
+    const subor = slug(x.nazov) + "." + koncovka(x.blob.type, x.meno);
+    const dalsie = [tlacidlo("Titulky .srt", "", () => prepis(x, "srt"))];
+    if (x.prepis) dalsie.push(tlacidlo("Zobraziť prepis", "", () => zobrazPrepis(x.prepis, "txt", x.nazov)));
+    if (x.srt) dalsie.push(tlacidlo("Zobraziť titulky", "", () => zobrazPrepis(x.srt, "srt", x.nazov)));
+    dalsie.push(dvojklik(tlacidlo("Zmazať", "danger"), async () => { await zmaz("nahravky", x.id); vykresliZoznam(); }));
+    z.append(polozka(x.nazov, [datum(x.id), x.trvanie ? cas(x.trvanie) : "", mb(x.blob.size), x.prepis ? "prepísané" : "", x.srt ? "titulky" : ""].filter(Boolean).join(" · "),
+      x.blob, subor, dalsie, [tlacidlo(x.prepis ? "Prepísať znova" : "Prepísať", "primary", () => prepis(x, "txt"))]));
+  }
+}
+let rec = null, recChunks = [], recStart = 0, recTimer = null, recStream = null;
+$("recBtn").onclick = async () => {
+  if (rec) { rec.stop(); return; }
+  if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") { $("recStav").textContent = "Tento prehliadač nevie nahrávať. Vyberte hotovú nahrávku zo zariadenia."; return; }
+  try { recStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }); }
+  catch { $("recStav").textContent = "Prístup k mikrofónu nie je povolený. Povoľte ho v nastaveniach prehliadača pre túto stránku."; return; }
+  const typ = ["audio/webm;codecs=opus", "audio/mp4", "audio/ogg;codecs=opus", "audio/webm"].find(t => MediaRecorder.isTypeSupported?.(t));
+  rec = new MediaRecorder(recStream, { ...(typ ? { mimeType: typ } : {}), audioBitsPerSecond: 32000 });
+  recChunks = [];
+  rec.ondataavailable = e => e.data.size && recChunks.push(e.data);
+  rec.onstop = async () => {
+    clearInterval(recTimer); recStream.getTracks().forEach(t => t.stop()); bdiet(false);
+    const dlzka = (Date.now() - recStart) / 1000;
+    const blob = new Blob(recChunks, { type: rec.mimeType || typ || "audio/webm" });
+    rec = null; $("recBtn").classList.remove("on"); $("recBtn").setAttribute("aria-label", "Začať nahrávať");
+    if (blob.size < 1000) { $("recStav").textContent = "Nahrávka je prázdna."; return; }
+    const id = Date.now();
+    await uloz("nahravky", { id, nazov: "Nahrávka " + datum(id), blob, trvanie: dlzka });
+    $("recStav").textContent = navigator.onLine ? "Uložené. Ťuknite na Prepísať." : "Uložené v zariadení. Prepíšete ju, keď budete online.";
+    vykresliZoznam();
+  };
+  rec.start(1000); recStart = Date.now(); bdiet(true);
+  $("recBtn").classList.add("on"); $("recBtn").setAttribute("aria-label", "Zastaviť nahrávanie");
+  $("recStav").textContent = "Nahrávam… ťuknite znova pre zastavenie. Nezhasínajte obrazovku.";
+  recTimer = setInterval(() => $("recCas").textContent = cas((Date.now() - recStart) / 1000), 500);
+};
+$("audioSubor").onchange = async e => {
+  const f = e.target.files[0]; if (!f) return; e.target.value = "";
+  const trv = await new Promise(ok => { const a = new Audio(); a.preload = "metadata"; a.onloadedmetadata = () => ok(isFinite(a.duration) ? a.duration : 0); a.onerror = () => ok(0); a.src = URL.createObjectURL(f); setTimeout(() => ok(0), 4000); });
+  const x = { id: Date.now(), nazov: f.name.replace(/\.[^.]+$/, ""), meno: f.name, blob: f, trvanie: trv };
+  await uloz("nahravky", x); vykresliZoznam();
+  if (navigator.onLine) prepis(x, "txt");
+};
+
+/* =====================================================================
+   PREPIS A TITULKY
+   ===================================================================== */
+function mimePre(blob, meno) {
+  const t = (blob.type || "").split(";")[0];
+  if (t.startsWith("audio/") || t.startsWith("video/")) return t === "video/mp4" || t === "audio/x-m4a" ? "audio/mp4" : t;
+  return { mp3: "audio/mp3", m4a: "audio/mp4", wav: "audio/wav", ogg: "audio/ogg", opus: "audio/ogg", aac: "audio/aac", webm: "audio/webm", flac: "audio/flac" }[koncovka("", meno)] || "audio/mpeg";
+}
+const naBase64 = blob => new Promise((ok, zle) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1]); r.onerror = () => zle(r.error); r.readAsDataURL(blob); });
+async function nahrajSubor(blob, mime, signal) {
+  const start = await fetch(API + "/upload/v1beta/files", { method: "POST", signal,
+    headers: { "x-goog-api-key": kluc(), "X-Goog-Upload-Protocol": "resumable", "X-Goog-Upload-Command": "start", "X-Goog-Upload-Header-Content-Length": String(blob.size), "X-Goog-Upload-Header-Content-Type": mime, "Content-Type": "application/json" },
+    body: JSON.stringify({ file: { display_name: "hlasopis" } }) });
+  const url = start.headers.get("x-goog-upload-url");
+  if (!start.ok || !url) throw new Chyba("Nahrávka je príliš veľká na priame odoslanie. Skúste kratšiu (do cca 45 minút).", "velke");
+  const up = await fetch(url, { method: "POST", signal, headers: { "X-Goog-Upload-Offset": "0", "X-Goog-Upload-Command": "upload, finalize" }, body: blob });
+  let f = (await up.json()).file;
+  for (let i = 0; f?.state === "PROCESSING" && i < 60; i++) { await sleep(2000); f = await (await fetch(`${API}/v1beta/${f.name}`, { headers: { "x-goog-api-key": kluc() }, signal })).json(); }
+  if (!f?.uri) throw new Chyba("Nahrávku sa nepodarilo odoslať.", "poziadavka");
+  return { fileData: { mimeType: mime, fileUri: f.uri } };
+}
+const POKYN_TXT = "Prepíš túto nahrávku doslovne do písaného textu v jazyku, ktorým sa v nej hovorí (najčastejšie slovenčina). Doplň správnu interpunkciu a veľké písmená a rozdeľ text na odseky podľa myšlienok. Nič nevynechávaj, neprekladaj ani neskracuj. Biblické citáty a mená píš správne. Nepridávaj nadpisy, komentáre, časové značky ani úvodné vety. Vráť iba samotný prepis.";
+const POKYN_CISTY = "Prepíš túto nahrávku do čistého, dobre čitateľného textu v jazyku, ktorým sa v nej hovorí (najčastejšie slovenčina). Vynechaj zaváhania (ehm, hm), opakované slová a prerieknutia, ale nemeň zmysel ani štýl rečníka a nič neskracuj. Doplň správnu interpunkciu a veľké písmená a rozdeľ text na odseky podľa myšlienok. Biblické citáty a mená píš správne. Nepridávaj nadpisy, komentáre, časové značky ani úvodné vety. Vráť iba samotný prepis.";
+const POKYN_SRT = "Vytvor z tejto nahrávky titulky vo formáte SRT v jazyku, ktorým sa v nej hovorí (najčastejšie slovenčina). Pravidlá: každý titulok má poradové číslo, riadok s časom v tvare HH:MM:SS,mmm --> HH:MM:SS,mmm a 1 až 2 riadky textu po najviac 42 znakov; titulok trvá 1 až 6 sekúnd; časy presne zodpovedajú tomu, kedy sa slová vyslovujú; titulky sa neprekrývajú a idú až do konca nahrávky. Doplň správnu interpunkciu. Vráť iba obsah súboru SRT, bez úvodu, komentárov a bez ```.";
+function opravSrt(t) {
+  t = t.replace(/^```\w*\s*|```\s*$/g, "").trim();
+  const bloky = t.split(/\r?\n\s*\r?\n/).map(b => b.trim()).filter(Boolean);
+  const out = []; let n = 0;
+  const tc = s => { const m = s.match(/(?:(\d{1,2}):)?(\d{1,2}):(\d{2})(?:[.,](\d{1,3}))?/); if (!m) return null; return `${String(+(m[1] || 0)).padStart(2, "0")}:${m[2].padStart(2, "0")}:${m[3]},${(m[4] || "0").padEnd(3, "0")}`; };
+  for (const b of bloky) {
+    const r = b.split(/\r?\n/); const i = r.findIndex(x => x.includes("-->")); if (i < 0) continue;
+    const [a, z] = r[i].split("-->").map(tc); const text = r.slice(i + 1).join("\n").trim();
+    if (!a || !z || !text) continue;
+    out.push(`${++n}\n${a} --> ${z}\n${text}`);
+  }
+  return out.length ? out.join("\n\n") + "\n" : t;
+}
+let sttJob = null, prepisTyp = "txt", prepisNazov = "prepis";
+async function prepis(x, typ) {
+  if (sttJob) return;
+  if (!navigator.onLine) { sprava("sttSprava", "Ste offline. Nahrávka je uložená – prepíšete ju, keď budete pripojený.", "warn"); return; }
+  if (potrebujeKluc()) return;
+  const ctrl = new AbortController(); sttJob = ctrl;
+  $("prepisKarta").scrollIntoView({ behavior: "smooth", block: "start" });
+  sprava("sttSprava", ""); $("sttProg").hidden = false; $("sttBar").style.width = "15%"; bdiet(true);
+  const mime = mimePre(x.blob, x.meno);
+  const pokyn = typ === "srt" ? POKYN_SRT : $("vycistit").checked ? POKYN_CISTY : POKYN_TXT;
+  try {
+    sttStav("Pripravujem nahrávku…");
+    const zvuk = x.blob.size <= INLINE_MAX ? { inlineData: { mimeType: mime, data: await naBase64(x.blob) } } : await nahrajSubor(x.blob, mime, ctrl.signal);
+    $("sttBar").style.width = "35%";
+    const modely = ($("mStt").value || PREDVOLENE.stt).split(",").map(s => s.trim()).filter(Boolean);
+    let text = "", posledna, koniec = "";
+    for (const m of modely) {
+      try {
+        sttStav((typ === "srt" ? "Vytváram titulky…" : "Prepisujem…") + (x.trvanie > 600 ? " dlhšia nahrávka môže trvať pár minút" : ""));
+        const d = await sOpakovanim(() => gemini(`/v1beta/models/${encodeURIComponent(m)}:generateContent`, {
+          contents: [{ role: "user", parts: [{ text: pokyn }, zvuk] }], generationConfig: { temperature: 0.2, maxOutputTokens: 65536 }
+        }, ctrl.signal), sttStav, ctrl.signal);
+        text = (d.candidates?.[0]?.content?.parts || []).map(p => p.text || "").join("").trim();
+        koniec = d.candidates?.[0]?.finishReason || "";
+        if (!text) throw new Chyba("Služba nevrátila žiadny text" + (koniec ? ` (${koniec})` : d.promptFeedback?.blockReason ? ` (${d.promptFeedback.blockReason})` : "") + ".", "prazdne");
+        break;
+      } catch (e) { posledna = e; if (e.druh !== "model") throw e; }
+    }
+    if (!text) throw posledna || new Chyba("Prepis sa nepodaril.", "poziadavka");
+    if (typ === "srt") text = opravSrt(text);
+    $("sttBar").style.width = "100%";
+    if (typ === "srt") x.srt = text; else x.prepis = text;
+    await uloz("nahravky", x); vykresliZoznam();
+    zobrazPrepis(text, typ, x.nazov);
+    if (koniec === "MAX_TOKENS") sprava("sttSprava", "Nahrávka je veľmi dlhá – výsledok môže byť na konci neúplný.", "warn");
+    else if (typ === "srt") sprava("sttSprava", "Titulky sú hotové. Časy sú približné – pred zverejnením ich skontrolujte s videom.", "ok");
+  } catch (e) {
+    sprava("sttSprava", e.message, e.druh === "zrusene" ? "" : "err");
+    if (e.druh === "kluc") ukazNastavenia(true);
+  } finally { sttJob = null; $("sttProg").hidden = true; bdiet(false); }
+}
+$("sttZrus").onclick = () => { sttJob?.abort(); sttStav("Ruším…"); };
+function zobrazPrepis(text, typ, nazov) {
+  prepisTyp = typ; prepisNazov = nazov || "prepis";
+  $("prepis").value = text; $("prepisLbl").textContent = typ === "srt" ? "Titulky (SRT)" : "Prepis";
+  aktualizujTxt(); $("prepisKarta").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+let txtUrl = null;
+function aktualizujTxt() {
+  if (txtUrl) URL.revokeObjectURL(txtUrl);
+  const srt = prepisTyp === "srt";
+  txtUrl = URL.createObjectURL(new Blob([(srt ? "" : "﻿") + $("prepis").value], { type: srt ? "application/x-subrip" : "text/plain;charset=utf-8" }));
+  $("ulozTxt").href = txtUrl; $("ulozTxt").download = slug(prepisNazov) + (srt ? ".srt" : ".txt");
+  $("ulozTxt").textContent = srt ? "Uložiť .srt" : "Uložiť .txt";
+  $("zdielajTxt").hidden = !navigator.share;
+}
+$("prepis").oninput = () => { clearTimeout(konceptT); konceptT = setTimeout(aktualizujTxt, 400); };
+$("kopiruj").onclick = async () => {
+  try { await navigator.clipboard.writeText($("prepis").value); $("kopiruj").textContent = "Skopírované"; }
+  catch { $("prepis").select(); $("kopiruj").textContent = "Označené – skopírujte"; }
+  setTimeout(() => $("kopiruj").textContent = "Kopírovať", 2000);
+};
+$("zdielajTxt").onclick = async () => { try { await navigator.share({ text: $("prepis").value, title: prepisNazov }); } catch {} };
+const bezCasov = t => t.split(/\r?\n\s*\r?\n/).map(b => b.split(/\r?\n/).filter(r => !/^\d+$/.test(r.trim()) && !r.includes("-->")).join(" ")).join(" ").replace(/\s+/g, " ").trim();
+$("naHlas").onclick = () => {
+  let t = $("prepis").value.trim();
+  if (!t) { sprava("sttSprava", "Prepis je prázdny.", "warn"); return; }
+  if (prepisTyp === "srt") t = bezCasov(t);
+  $("text").value = t; ls.set("koncept", t); pocitaj(); prepni("tts"); window.scrollTo({ top: 0, behavior: "smooth" });
+};
+
+/* =====================================================================
+   ŠTART
+   ===================================================================== */
+(async () => {
+  obnovVolby(); pocitaj(); aktualizujTxt();
+  prepni(ls.get("tab", "tts"));
+  if (!kluc()) ukazNastavenia(true);
+  try {
+    const [obal, uvod, zaver] = await Promise.all(["obal", "uvod", "zaver"].map(k => jeden("subory", k)));
+    nastavObal(obal?.blob); nastavZnelku("uvod", uvod?.blob, uvod?.meno); nastavZnelku("zaver", zaver?.blob, zaver?.meno);
+  } catch {}
+  pocitajKnihaSub(); vykresliKniznicu(); vykresliZoznam(); ukazPokracovanie();
+  try { navigator.storage?.persist?.(); } catch {}
+  if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
+})();
+</script>
+</body>
+</html>
