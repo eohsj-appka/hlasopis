@@ -776,12 +776,32 @@ function base64NaPcm(kusy) {
   let o = 0; for (const u of pole) { spolu.set(u.subarray(0, Math.min(u.length, spolu.length - o)), o); o += u.length; }
   return new Int16Array(spolu.buffer);
 }
-/* Krátky nábeh a doznenie na okrajoch – zabráni cvaknutiu a škrknutiu na začiatku a konci. */
+/* Orezanie konca: Gemini občas za vetu pridá ticho a krátke škrknutie / šum.
+   Nájde posledný úsek skutočnej reči, krátke zvuky za tichom odstrihne,
+   nechá prirodzený dozvuk a pridá jemný nábeh a doznenie (bez cvaknutia). */
 function dozni(pcm, rate) {
-  const nab = Math.min(Math.round(rate * 0.012), pcm.length >> 2), kon = Math.min(Math.round(rate * 0.06), pcm.length >> 2);
-  for (let i = 0; i < nab; i++) pcm[i] = Math.round(pcm[i] * (i / nab));
-  for (let i = 0; i < kon; i++) { const j = pcm.length - 1 - i; pcm[j] = Math.round(pcm[j] * (i / kon)); }
-  return pcm;
+  const okno = Math.max(1, Math.round(rate * 0.01)), n = Math.floor(pcm.length / okno);
+  if (n < 20) return pcm;
+  const rms = new Float32Array(n);
+  for (let w = 0; w < n; w++) { let sum = 0; for (let i = w * okno; i < (w + 1) * okno; i++) sum += pcm[i] * pcm[i]; rms[w] = Math.sqrt(sum / okno); }
+  const zor = Array.from(rms).sort((a, b) => a - b), p95 = zor[Math.floor(n * 0.95)];
+  const prah = Math.max(250, p95 * 0.06);
+  const zvuk = w => rms[w] > prah;
+  let koniec = n - 1;
+  for (let opak = 0; opak < 4; opak++) {
+    while (koniec > 0 && !zvuk(koniec)) koniec--;                 // preskoč ticho na konci
+    let zac = koniec; while (zac > 0 && zvuk(zac - 1)) zac--;      // začiatok posledného zvuku
+    let ticho = 0, j = zac - 1; while (j > 0 && !zvuk(j)) { ticho++; j--; }
+    const dlzka = koniec - zac + 1;
+    if (dlzka <= 25 && ticho >= 15 && j > 0) koniec = j;          // krátky zvuk (≤ 250 ms) po tichu (≥ 150 ms) = artefakt
+    else break;
+  }
+  const dlzkaVzoriek = Math.min(pcm.length, (koniec + 1) * okno + Math.round(rate * 0.18));
+  const out = pcm.slice(0, dlzkaVzoriek);
+  const nab = Math.min(Math.round(rate * 0.012), out.length >> 2), kon = Math.min(Math.round(rate * 0.12), out.length >> 2);
+  for (let i = 0; i < nab; i++) out[i] = Math.round(out[i] * (i / nab));
+  for (let i = 0; i < kon; i++) { const k = out.length - 1 - i; out[k] = Math.round(out[k] * (i / kon)); }
+  return out;
 }
 async function naMp3(kusy, rate, stav) {
   if (typeof lamejs === "undefined") return naWav(kusy, rate);
